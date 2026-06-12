@@ -266,22 +266,28 @@ def analyze_tf(tf, klines, ema_short, ema_long):
     price = float(closes[-1])
     es_val = float(es[-1])
     el_val = float(el[-1])
+    # 区间 = [ema较小值, ema较大值]
     low = min(es_val, el_val)
     high = max(es_val, el_val)
-
+    # 价格相对区间的位置
     if price > high:
-        signal = "long"
+        pos = "above"
     elif price < low:
-        signal = "short"
+        pos = "below"
     else:
-        signal = "between"
+        pos = "inside"
+    # 排列方向：EMA 180 在 EMA 250 下面 → 空头排列；EMA 180 在上面 → 多头排列
+    arrangement = "short_arrangement" if es_val < el_val else "long_arrangement"
 
     return {
         "tf": tf,
         "price": round(price, 2),
         "ema_short": round(es_val, 2),
         "ema_long": round(el_val, 2),
-        "signal": signal,
+        "arrangement": arrangement,     # 'short_arrangement' = 空头排列 / 'long_arrangement' = 多头排列
+        "position": pos,                # 'inside' / 'above' / 'below'
+        "ema_low": round(low, 2),
+        "ema_high": round(high, 2),
     }
 
 
@@ -317,18 +323,20 @@ def test_feishu_push(cfg):
     )
 
 
-def send_price_alert(cfg, tf, state, direction="ema"):
+def send_price_alert(cfg, tf, state):
     """EMA 触发推送"""
     webhook = cfg.get("feishu", {}).get("webhook", "")
     if not webhook:
         return False
-    arrow = "🟢 价格突破区间上沿（看多）" if state["signal"] == "long" else "🔴 价格跌破区间下沿（看空）"
+    arrangement_label = "（空头排列，开空" if state["arrangement"] == "short_arrangement" else "（多头排列，开多"
+    ema_s = cfg['ema_alert']['ema_short']
+    ema_l = cfg['ema_alert']['ema_long']
     text = (
         f"ETH EMA 预警 · {TF_LABELS.get(tf, tf)}\n"
-        f"{arrow}\n"
+        f"🟢 价格进入 EMA 区间 {arrangement_label} \n"
         f"当前价格: ${state['price']:.2f}\n"
-        f"EMA {cfg['ema_alert']['ema_short']}: ${state['ema_short']:.2f}\n"
-        f"EMA {cfg['ema_alert']['ema_long']}: ${state['ema_long']:.2f}\n"
+        f"EMA {ema_s}: ${state['ema_short']:.2f}\n"
+        f"EMA {ema_l}: ${state['ema_long']:.2f}\n"
         f"时间: {format_time_now()}"
     )
     return _send_feishu(webhook, text)
@@ -360,32 +368,55 @@ def send_fixed_price_report(cfg, price):
 
 
 # ============================================================
-# 预警判定 & 冷却
+# 预警判定 & 缓冲带
 # ============================================================
+# _buffer_state[tf] = None 表示"正常状态"，可触发预警
+# _buffer_state[tf] = { "buffer_low": float, "buffer_high": float }
+#   表示"刚预警过，正在缓冲带中，价格必须完全走出缓冲带才能重新触发预警
+# ============================================================
+_buffer_state = {}
+
 def check_ema_alert(tf, state, cfg):
-    """检查 EMA 预警，冷却 10 分钟"""
+    """核心预警逻辑（新版本）
+    - 价格进入 EMA 区间内时触发
+    - EMA 180 在 EMA 250 下方（空头排列）→ 开空
+    - EMA 180 在 EMA 250 上方（多头排列）→ 开多
+    - 预警后将区间上下各扩大 10 作为缓冲带，价格走出后才允许再次预警
+    """
+    global _buffer_state
+
     if tf not in (cfg.get("ema_alert", {}).get("enabled_timeframes", []) or []):
         return
-    signal = state.get("signal")
-    if signal not in ("long", "short"):
+
+    price = state["price"]
+    ema_low = state["ema_low"]      # 两条 EMA 中的较低的那条
+    ema_high = state["ema_high"]     # 两条 EMA 中的较高的那条
+
+    buf = _buffer_state.get(tf)
+
+    # ========== 如果正在缓冲带模式 ==========
+    if buf is not None:
+        # 检查价格是否已经走出缓冲带
+        if price > buf["buffer_high"] or price < buf["buffer_low"]:
+            # 已走出缓冲带 → 清空缓冲带状态 → 重置为可预警状态
+            _buffer_state[tf] = None
+            logger.info(f"[{tf}] 价格已走出缓冲带，重新允许预警 (${buf['buffer_low']:.2f} ~ ${buf['buffer_high']:.2f}, 当前${price:.2f}")
+        # 否则仍在缓冲带中，什么都不做
         return
-    key = (tf, signal)
-    cooldown = cfg.get("alert", {}).get("cooldown_seconds", 600)
-    now = time.time()
-    if now - _alert_cooldown.get(key, 0) < cooldown:
-        return
-    ok = send_price_alert(cfg, tf, state)
-    if ok:
-        _alert_cooldown[key] = now
-        append_history({
-            "time": format_time_now(),
-            "type": "ema",
-            "tf": tf,
-            "price": state["price"],
-            "signal": signal,
-            "ema_short": state["ema_short"],
-            "ema_long": state["ema_long"],
-        })
+
+    # ========== 正常状态：检查价格是否进入 EMA 区间内
+    # 进入区间 = 价格同时小于等于高的那条 EMA，且大于等于低的那条 EMA
+    if ema_low <= price <= ema_high:
+        ok = send_price_alert(cfg, tf, state)
+        if ok:
+            # 预警成功 → 设置缓冲带（上下各扩 10）
+            _buffer_state[tf] = {
+                "buffer_low": round(ema_low - 10, 2),
+                "buffer_high": round(ema_high + 10, 2),
+            }
+            logger.info(
+                f"[{tf}] 预警触发（{state['arrangement']}），设置缓冲带 ${_buffer_state[tf]['buffer_low']:.2f} ~ ${_buffer_state[tf]['buffer_high']:.2f}"
+            )
 
 
 def check_range_alerts(cfg, price):
@@ -427,6 +458,7 @@ def check_range_alerts(cfg, price):
 # 定时播报对齐
 # ============================================================
 _last_fixed_push = 0
+_last_interval_push = 0
 
 def get_next_fixed_push_time(cfg):
     """返回 'HH:MM:SS' 字符串或空"""
@@ -461,6 +493,18 @@ def check_fixed_push(cfg, price):
             _last_fixed_push = time.time()
 
 
+def check_interval_push(cfg, price):
+    """简单间隔推送（每 N 秒播报一次价格）"""
+    global _last_interval_push
+    interval = cfg.get("feishu", {}).get("price_push_interval_seconds", 0) or 0
+    if interval <= 0:
+        return
+    if time.time() - _last_interval_push >= interval:
+        ok = send_fixed_price_report(cfg, price)
+        if ok:
+            _last_interval_push = time.time()
+
+
 # ============================================================
 # 核心刷新逻辑
 # ============================================================
@@ -492,7 +536,9 @@ def update_all_data():
     # 价格区间预警
     if new_price is not None:
         check_range_alerts(cfg, new_price)
-        # 定时播报
+        # 简单间隔推送
+        check_interval_push(cfg, new_price)
+        # 固定时间点推送
         check_fixed_push(cfg, new_price)
 
     _last_update_time = time.time()
