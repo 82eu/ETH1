@@ -99,7 +99,7 @@ _monitor_thread = None
 # ============================================================
 DEFAULT_CONFIG = {
     "feishu": {
-        "webhook": "",
+        "webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/69f9a407-7d26-42fa-9d24-18600830944b",
         "price_push_interval_seconds": 30,
         "fixed_push_interval_seconds": 0,
     },
