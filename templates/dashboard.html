@@ -63,15 +63,22 @@
       <div class="ema-detail" id="ema-detail">
         <div class="ema-detail-title" id="ema-detail-title">5分钟 · EMA 区间</div>
         <div class="ema-detail-body">
-          <div class="ema-detail-row">
-            <span class="ema-detail-label" id="ema-short-label">EMA 180</span>
-            <span class="ema-detail-value" id="ema-short-value">--</span>
-          </div>
-          <div class="ema-detail-row">
-            <span class="ema-detail-label" id="ema-long-label">EMA 250</span>
-            <span class="ema-detail-value" id="ema-long-value">--</span>
+          <!-- 两个醒目的 EMA 卡片 -->
+          <div class="ema-value-cards">
+            <div class="ema-card">
+              <div class="ema-card-label" id="ema-short-label">EMA 180</div>
+              <div class="ema-card-value" id="ema-short-value">--</div>
+            </div>
+            <div class="ema-card ema-card-250">
+              <div class="ema-card-label" id="ema-long-label">EMA 250</div>
+              <div class="ema-card-value" id="ema-long-value">--</div>
+            </div>
           </div>
           <div class="ema-detail-divider"></div>
+          <div class="ema-detail-row">
+            <span class="ema-detail-label">当前价格</span>
+            <span class="ema-detail-value" id="ema-price">--</span>
+          </div>
           <div class="ema-detail-row">
             <span class="ema-detail-label">离区间中心</span>
             <span class="ema-detail-value" id="ema-distance">--</span>
@@ -172,6 +179,7 @@ function renderEmaDetail(d) {
   const s = states[_selectedTf];
   const shortEl = document.getElementById('ema-short-value');
   const longEl = document.getElementById('ema-long-value');
+  const priceEl = document.getElementById('ema-price');
   const distEl = document.getElementById('ema-distance');
   const sourceEl = document.getElementById('ema-source');
   const shortLabel = document.getElementById('ema-short-label');
@@ -183,7 +191,9 @@ function renderEmaDetail(d) {
   if (s) {
     if (shortEl) shortEl.textContent = '$' + formatNumber(s.ema_short, 2);
     if (longEl) longEl.textContent = '$' + formatNumber(s.ema_long, 2);
-    // 离 EMA 区间中心距离 = 价格 - (EMA180 + EMA250)/2
+    if (priceEl) priceEl.textContent = '$' + formatNumber(s.price, 2);
+
+    // 离 EMA 区间中心距离
     const center = (Number(s.ema_short) + Number(s.ema_long)) / 2;
     const dist = Number(s.price) - center;
     if (distEl) {
@@ -195,6 +205,7 @@ function renderEmaDetail(d) {
   } else {
     if (shortEl) shortEl.textContent = '--';
     if (longEl) longEl.textContent = '--';
+    if (priceEl) priceEl.textContent = '--';
     if (distEl) { distEl.textContent = '--'; distEl.style.color = '#fff'; }
     if (sourceEl) sourceEl.textContent = '--';
   }
