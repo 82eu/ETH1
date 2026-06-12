@@ -196,78 +196,75 @@ body::before {
 }
 
 .tf-card {
-  padding: 16px 12px;
+  padding: 14px 8px;
   background: rgba(30, 41, 59, 0.5);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   text-align: center;
-  transition: transform 0.2s, border-color 0.2s;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  cursor: pointer;
 }
 .tf-card:hover {
   transform: translateY(-2px);
   border-color: rgba(139, 92, 246, 0.4);
 }
+.tf-card.tf-mini.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.7);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+}
 
 .tf-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
   letter-spacing: 1px;
-  margin-bottom: 12px;
+  font-weight: 500;
 }
 
-.tf-ema {
-  margin-bottom: 10px;
+/* ============================================================
+   EMA 详情区
+   ============================================================ */
+.ema-detail {
+  margin-top: 16px;
+  padding: 20px 24px;
+  background: rgba(30, 41, 59, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
 }
-.tf-ema-row {
+.ema-detail-title {
+  font-size: 13px;
+  color: rgba(139, 92, 246, 0.95);
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.ema-detail-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+}
+.ema-detail-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 2px 0;
-  font-size: 11px;
+  padding: 4px 0;
 }
-.tf-ema-label {
+.ema-detail-label {
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
 }
-.tf-ema-value {
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.tf-price-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.tf-signal-dot {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  transition: background 0.3s;
-}
-.tf-price-text {
-  font-size: 16px;
+.ema-detail-value {
+  font-size: 15px;
   font-weight: 600;
   color: #fff;
   font-variant-numeric: tabular-nums;
 }
-.tf-source {
-  color: rgba(139, 92, 246, 0.85);
-  font-size: 10px;
-  margin-top: 4px;
-}
-
-/* ============================================================
-   EMA 展示（全局区已删除，保留样式供其他页面复用）
-   ============================================================ */
-.ema-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.ema-detail-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  grid-column: span 2;
+  margin: 2px 0;
 }
 
 /* ============================================================
