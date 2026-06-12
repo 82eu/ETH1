@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>预警历史 - ETH EMA 预警</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="nav">
+      <span class="nav-logo">📊 ETH EMA 预警</span>
+      <div class="nav-links">
+        <a href="/" class="nav-link">仪表盘</a>
+        <a href="/settings" class="nav-link">设置</a>
+        <a href="/history" class="nav-link active">历史</a>
+      </div>
+      <span class="nav-status" id="mini-status"></span>
+    </nav>
+
+    <div class="card">
+      <div class="section-title">
+        <span>预警记录</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="hint" id="total-count">共 0 条</span>
+          <button class="btn-secondary" onclick="loadHistory()">刷新</button>
+          <button class="btn-delete" onclick="clearAll()">清空全部</button>
+        </div>
+      </div>
+      <div id="history-list" style="margin-top:12px;">
+        <div class="range-empty">加载中...</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>历史记录保存在 alert_history.json</span>
+    </div>
+  </div>
+
+<script>
+function _fmt(num, d) {
+  if (num == null || isNaN(num)) return '--';
+  return Number(num).toLocaleString('zh-CN', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function _tfName(tf) {
+  const m = { '5m': '5m', '15m': '15m', '30m': '30m', '1h': '1h', '4h': '4h' };
+  return m[tf] || tf;
+}
+function _signalName(sig) {
+  const m = { 'long': '🟢 开多', 'short': '🔴 开空', 'between': '🟡 观望', '进入区间': '🟡 进入区间' };
+  return m[sig] || (sig || '');
+}
+function loadHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="range-empty">加载中...</div>';
+  fetch('/api/history', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      const items = d.history || [];
+      document.getElementById('total-count').textContent = '共 ' + items.length + ' 条';
+      if (items.length === 0) {
+        list.innerHTML = '<div class="range-empty">暂无预警记录</div>';
+        return;
+      }
+      let html = '';
+      items.forEach((item, idx) => {
+        const tf = item.timeframe || '';
+        const isRange = tf.startsWith('price_range') || item.alert_type === 'price_range';
+        let title, subtitle;
+        if (isRange) {
+          title = '[价格区间] ' + (item.note || '区间告警');
+          subtitle = '价格 $' + _fmt(item.price, 2) + ' 进入区间 $' + _fmt(item.ema_short, 2) + ' ~ $' + _fmt(item.ema_long, 2);
+        } else {
+          title = '[' + _tfName(tf) + '] ' + _signalName(item.signal) + '  $' + _fmt(item.price, 2);
+          subtitle = 'EMA$' + _fmt(item.ema_short, 2) + ' / EMA$' + _fmt(item.ema_long, 2) + ' · ' + (item.position || '');
+        }
+        html += '<div class="history-item">' +
+          '<div style="flex:1;">' +
+            '<div class="history-title">' + title + '</div>' +
+            '<div class="history-sub">' + subtitle + '</div>' +
+            '<div class="history-time">' + (item.time_str || '') + '</div>' +
+          '</div>' +
+          '<button class="btn-delete" onclick="deleteOne(' + idx + ')">删除</button>' +
+        '</div>';
+      });
+      list.innerHTML = html;
+    })
+    .catch(e => {
+      list.innerHTML = '<div class="range-empty" style="color:#f87171;">加载失败: ' + e + '</div>';
+    });
+}
+function deleteOne(idx) {
+  if (!confirm('确认删除该预警记录？')) return;
+  fetch('/api/delete_alert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index: idx })
+  }).then(r => r.json()).then(d => {
+    if (d.success) loadHistory();
+    else alert('删除失败: ' + (d.error || '未知'));
+  }).catch(e => alert('请求失败: ' + e));
+}
+function clearAll() {
+  if (!confirm('确认清空全部预警历史？此操作不可恢复。')) return;
+  fetch('/api/clear_history', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  }).then(r => r.json()).then(d => {
+    if (d.success) loadHistory();
+    else alert('清空失败: ' + (d.error || '未知'));
+  }).catch(e => alert('请求失败: ' + e));
+}
+document.addEventListener('DOMContentLoaded', () => { loadHistory(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,520 @@
+/* ================================================================
+   ETH EMA 预警系统 - 毛玻璃风格
+   ================================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  color: #e5e7eb;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #1e3a8a 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.35) 0%, transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.3) 0%, transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   顶部导航
+   ============================================================ */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.nav-logo {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+.nav-link:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.nav-link.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(139, 92, 246, 0.3));
+  color: #fff;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.nav-status {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ============================================================
+   毛玻璃卡片
+   ============================================================ */
+.card {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 16px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 16px;
+  letter-spacing: 0.3px;
+}
+
+/* ============================================================
+   价格展示（主仪表盘）
+   ============================================================ */
+.price-card {
+  text-align: center;
+  padding: 32px 24px;
+  background:
+    radial-gradient(ellipse at top, rgba(139, 92, 246, 0.18) 0%, transparent 60%),
+    rgba(15, 23, 42, 0.55);
+}
+
+.price-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.price-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.price-value span {
+  transition: color 0.4s, text-shadow 0.4s;
+}
+.price-value span.price-up {
+  color: #22c55e;
+  text-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+}
+.price-value span.price-down {
+  color: #f43f5e;
+  text-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
+}
+
+.price-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ============================================================
+   信息栏
+   ============================================================ */
+.info-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.info-bar .refresh-countdown {
+  color: #a5f3fc;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.info-bar .source-detail {
+  margin-left: auto;
+  cursor: pointer;
+  color: #93c5fd;
+  transition: color 0.2s;
+}
+.info-bar .source-detail:hover { color: #60a5fa; }
+
+/* ============================================================
+   周期卡片网格
+   ============================================================ */
+.tf-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.tf-card {
+  padding: 16px 12px;
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.tf-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.tf-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.tf-ema {
+  margin-bottom: 10px;
+}
+.tf-ema-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 2px 0;
+  font-size: 11px;
+}
+.tf-ema-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+.tf-ema-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tf-price-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.tf-signal-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+.tf-price-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.tf-source {
+  color: rgba(139, 92, 246, 0.85);
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+/* ============================================================
+   EMA 展示（全局区已删除，保留样式供其他页面复用）
+   ============================================================ */
+.ema-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ============================================================
+   表单行
+   ============================================================ */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
+}
+.form-row:last-child { border-bottom: none; }
+
+.form-row label {
+  min-width: 140px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+}
+
+.form-row input[type="text"],
+.form-row input[type="number"],
+.form-row select {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, background 0.2s;
+  outline: none;
+}
+.form-row input:focus,
+.form-row select:focus {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.form-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+.hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ============================================================
+   按钮
+   ============================================================ */
+.btn-primary,
+.btn-secondary,
+.btn-toggle,
+.btn-delete {
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+
+.btn-toggle {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  font-size: 12px;
+  padding: 7px 12px;
+}
+.btn-toggle:hover { background: rgba(34, 197, 94, 0.25); }
+
+.btn-delete {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  font-size: 12px;
+  padding: 7px 12px;
+}
+.btn-delete:hover { background: rgba(244, 63, 94, 0.22); }
+
+/* ============================================================
+   价格区间列表
+   ============================================================ */
+.range-list { display: flex; flex-direction: column; gap: 10px; }
+
+.range-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+.range-item.range-disabled {
+  opacity: 0.55;
+  background: rgba(30, 41, 59, 0.3);
+}
+
+.range-info { flex: 1; }
+.range-name { font-size: 14px; color: #fff; font-weight: 500; margin-bottom: 4px; }
+.range-values { font-size: 13px; color: #93c5fd; margin-bottom: 2px; }
+.range-band { font-size: 11px; color: rgba(255, 255, 255, 0.45); }
+
+.range-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.range-empty {
+  padding: 28px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+/* ============================================================
+   弹窗
+   ============================================================ */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.9));
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.modal-content .form-row input[type="text"],
+.modal-content .form-row input[type="number"] {
+  flex: 1;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* ============================================================
+   历史列表
+   ============================================================ */
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: rgba(30, 41, 59, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.history-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+.history-sub { font-size: 12px; color: rgba(255, 255, 255, 0.65); margin-bottom: 4px; }
+.history-time { font-size: 11px; color: rgba(255, 255, 255, 0.4); }
+
+/* ============================================================
+   加载动画（省略号）
+   ============================================================ */
+.loading-dots {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.loading-dots::after {
+  content: "...";
+  display: inline-block;
+  animation: dots 1.4s steps(4, end) infinite;
+  width: 20px;
+  text-align: left;
+}
+
+@keyframes dots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+  100% { content: ""; }
+}
+
+/* ============================================================
+   页脚
+   ============================================================ */
+.footer {
+  margin-top: 20px;
+  padding: 14px 0;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 720px) {
+  .container { padding: 16px 12px 32px; }
+  .nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 12px;
+  }
+  .nav-logo { width: 100%; text-align: center; margin-bottom: 8px; }
+  .price-value { font-size: 36px; }
+  .tf-grid { grid-template-columns: repeat(2, 1fr); }
+  .ema-row { grid-template-columns: 1fr; }
+  .form-row label { min-width: 100%; padding-bottom: 4px; }
+  .info-bar { font-size: 12px; gap: 10px; padding: 10px 14px; }
+  .info-bar .source-detail { margin-left: 0; width: 100%; text-align: right; }
+}

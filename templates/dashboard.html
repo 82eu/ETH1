@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETH EMA 预警仪表盘</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部导航 -->
+    <nav class="nav">
+      <span class="nav-logo">📊 ETH EMA 预警</span>
+      <div class="nav-links">
+        <a href="/" class="nav-link active">仪表盘</a>
+        <a href="/settings" class="nav-link">设置</a>
+        <a href="/history" class="nav-link">历史</a>
+      </div>
+      <span class="nav-status" id="conn-status-mini">正在连接...</span>
+    </nav>
+
+    <!-- 价格区 -->
+    <div class="card price-card">
+      <div class="price-label">ETH / USDT 实时价格</div>
+      <div class="price-value" id="current-price">
+        <span class="loading-dots">正在获取数据...</span>
+      </div>
+      <div class="price-sub" id="price-sub">
+        <span>等待数据更新...</span>
+      </div>
+    </div>
+
+    <!-- 信息栏 -->
+    <div class="info-bar">
+      <span>状态: <span id="conn-status">正在连接...</span></span>
+      <span>下次刷新: <span class="refresh-countdown" id="refresh-countdown">30</span> 秒</span>
+      <span id="fixed-push-info"></span>
+      <span class="source-detail" onclick="loadState()">🔄 立即刷新</span>
+    </div>
+
+    <!-- 各周期状态 -->
+    <div class="card">
+      <div class="section-title">各周期状态</div>
+      <div class="tf-grid">
+        <div class="tf-card" id="tf-5m">
+          <div class="tf-label">5分钟</div>
+          <div class="tf-ema">
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+          </div>
+          <div class="tf-price-row">
+            <span class="tf-signal-dot" style="background:#64748b;"></span>
+            <span class="tf-price-text">--</span>
+          </div>
+          <div class="tf-source">--</div>
+        </div>
+        <div class="tf-card" id="tf-15m">
+          <div class="tf-label">15分钟</div>
+          <div class="tf-ema">
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+          </div>
+          <div class="tf-price-row">
+            <span class="tf-signal-dot" style="background:#64748b;"></span>
+            <span class="tf-price-text">--</span>
+          </div>
+          <div class="tf-source">--</div>
+        </div>
+        <div class="tf-card" id="tf-30m">
+          <div class="tf-label">30分钟</div>
+          <div class="tf-ema">
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+          </div>
+          <div class="tf-price-row">
+            <span class="tf-signal-dot" style="background:#64748b;"></span>
+            <span class="tf-price-text">--</span>
+          </div>
+          <div class="tf-source">--</div>
+        </div>
+        <div class="tf-card" id="tf-1h">
+          <div class="tf-label">1小时</div>
+          <div class="tf-ema">
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+          </div>
+          <div class="tf-price-row">
+            <span class="tf-signal-dot" style="background:#64748b;"></span>
+            <span class="tf-price-text">--</span>
+          </div>
+          <div class="tf-source">--</div>
+        </div>
+        <div class="tf-card" id="tf-4h">
+          <div class="tf-label">4小时</div>
+          <div class="tf-ema">
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+          </div>
+          <div class="tf-price-row">
+            <span class="tf-signal-dot" style="background:#64748b;"></span>
+            <span class="tf-price-text">--</span>
+          </div>
+          <div class="tf-source">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 价格区间管理 -->
+    <div class="card">
+      <div class="section-title">
+        <span>价格区间预警</span>
+        <button class="btn-primary" id="btn-add-range" onclick="showAddRange()">+ 添加区间</button>
+      </div>
+      <div id="range-list" class="range-list">
+        <div class="range-empty">暂无价格区间，点击右上角「+ 添加区间」</div>
+      </div>
+    </div>
+
+    <!-- 添加区间弹窗 -->
+    <div class="modal" id="modal-range" style="display:none;">
+      <div class="modal-content">
+        <div class="section-title">添加价格区间</div>
+        <div class="form-row">
+          <label>名称（可选）</label>
+          <input type="text" id="range-name" placeholder="如 震荡区间">
+        </div>
+        <div class="form-row">
+          <label>下限 (USDT)</label>
+          <input type="number" id="range-low" placeholder="如 1600" step="0.01">
+        </div>
+        <div class="form-row">
+          <label>上限 (USDT)</label>
+          <input type="number" id="range-high" placeholder="如 1700" step="0.01">
+        </div>
+        <div class="form-row">
+          <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="range-enabled" checked> 立即启用
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="hideAddRange()">取消</button>
+          <button class="btn-primary" onclick="submitAddRange()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>数据来源: Gate.io / OKX</span>
+      <span id="last-update-text">等待数据更新...</span>
+    </div>
+  </div>
+
+<script>
+let _countdown = 30;
+let _prevPrice = null;
+let _tickTimer = null;
+
+function formatNumber(n, d) {
+  if (n == null || isNaN(n)) return '--';
+  return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+function updateCountdown() {
+  const el = document.getElementById('refresh-countdown');
+  if (el) el.textContent = _countdown;
+}
+
+// ====== 核心：请求状态 ======
+function loadState() {
+  _countdown = 30;
+  updateCountdown();
+  fetch('/api/state', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
+      renderDashboard(data);
+    })
+    .catch(err => {
+      const el = document.getElementById('conn-status');
+      if (el) {
+        el.textContent = '网络异常，重试中...';
+        el.style.color = '#f87171';
+      }
+      // 出错后缩短下次刷新时间
+      _countdown = 8;
+      updateCountdown();
+    });
+}
+
+function showError(msg) {
+  const el = document.getElementById('conn-status');
+  if (el) {
+    el.textContent = msg || '接口异常';
+    el.style.color = '#f87171';
+  }
+}
+
+// ====== 渲染 ======
+function renderDashboard(d) {
+  const states = d.states || {};
+  const hasData = d.has_data;
+
+  // 连接状态
+  const connEl = document.getElementById('conn-status');
+  if (connEl) {
+    connEl.textContent = d.status || '未知';
+    connEl.style.color = (d.status === '已连接') ? '#4ade80' : (d.status === '连接稍慢' ? '#fbbf24' : '#f87171');
+  }
+  const miniEl = document.getElementById('conn-status-mini');
+  if (miniEl) {
+    miniEl.textContent = '● ' + (d.status || '未知');
+    miniEl.style.color = (d.status === '已连接') ? '#4ade80' : (d.status === '连接稍慢' ? '#fbbf24' : '#f87171');
+  }
+
+  // 价格
+  const priceEl = document.getElementById('current-price');
+  const priceSubEl = document.getElementById('price-sub');
+  if (hasData && d.latest_price) {
+    priceEl.innerHTML = '<span>$' + formatNumber(d.latest_price, 2) + '</span>';
+    // 涨跌高亮
+    if (_prevPrice !== null) {
+      const diff = d.latest_price - _prevPrice;
+      if (Math.abs(diff) > 0.01) {
+        const inner = priceEl.querySelector('span');
+        if (inner) {
+          inner.classList.add(diff > 0 ? 'price-up' : 'price-down');
+          setTimeout(() => inner.classList.remove('price-up', 'price-down'), 1800);
+        }
+      }
+    }
+    _prevPrice = d.latest_price;
+
+    let sub = '';
+    if (d.data_age_sec != null && d.data_age_sec < 999999) {
+      sub = '<span>数据更新于 ' + d.data_age_sec + ' 秒前</span>';
+    } else if (d.update_time_str) {
+      sub = '<span>更新时间: ' + d.update_time_str + '</span>';
+    } else {
+      sub = '<span>正在获取交易所数据...</span>';
+    }
+    priceSubEl.innerHTML = sub;
+  } else {
+    priceEl.innerHTML = '<span class="loading-dots">正在获取数据...</span>';
+    priceSubEl.innerHTML = '<span>首次从交易所获取数据，可能需要几秒...</span>';
+    _prevPrice = null;
+  }
+
+  // 底部更新时间
+  const lut = document.getElementById('last-update-text');
+  if (lut) {
+    if (d.update_time_str) lut.textContent = '最后更新: ' + d.update_time_str;
+    else lut.textContent = '等待数据更新...';
+  }
+
+  // 下一次固定时间点推送
+  const fixedEl = document.getElementById('fixed-push-info');
+  if (fixedEl) {
+    const fixed = d.fixed_push_interval || 0;
+    if (fixed > 0 && d.next_fixed_push_time) {
+      let intervalText;
+      const minutes = fixed / 60;
+      if (minutes >= 60) intervalText = (minutes / 60) + '小时';
+      else intervalText = minutes + '分钟';
+      fixedEl.innerHTML = '· 下次播报 ' + d.next_fixed_push_time + '（每' + intervalText + '）';
+    } else {
+      fixedEl.textContent = '';
+    }
+  }
+
+  // 周期卡片
+  for (const tfKey of ['5m', '15m', '30m', '1h', '4h']) {
+    const tfCard = document.getElementById('tf-' + tfKey);
+    if (!tfCard) continue;
+    const s = states[tfKey];
+    const emaRows = tfCard.querySelectorAll('.tf-ema-row');
+    const dotEl = tfCard.querySelector('.tf-signal-dot');
+    const priceEl = tfCard.querySelector('.tf-price-text');
+    const sourceEl = tfCard.querySelector('.tf-source');
+
+    if (s) {
+      // 更新 EMA 标签（根据配置动态变化）
+      let esVal = 180, elVal = 250;
+      if (d.config && d.config.ema_alert) {
+        esVal = d.config.ema_alert.ema_short || 180;
+        elVal = d.config.ema_alert.ema_long || 250;
+      }
+
+      const labels = ['EMA ' + esVal, 'EMA ' + elVal];
+      const vals = [s.ema_short, s.ema_long];
+      emaRows.forEach((row, idx) => {
+        const labelEl = row.querySelector('.tf-ema-label');
+        const valEl = row.querySelector('.tf-ema-value');
+        if (labelEl) labelEl.textContent = labels[idx];
+        if (valEl) valEl.textContent = '$' + formatNumber(vals[idx], 2);
+      });
+
+      // 信号点颜色（价格在 EMA 区间上下方）
+      const signal = s.signal || 'between';
+      let dotColor = '#facc15';      // yellow for between
+      if (signal === 'long') dotColor = '#22c55e';   // green - price above both
+      else if (signal === 'short') dotColor = '#ef4444';  // red - price below both
+      dotEl.style.background = dotColor;
+      dotEl.style.boxShadow = '0 0 10px ' + dotColor;
+
+      priceEl.textContent = '$' + formatNumber(s.price, 2);
+      sourceEl.textContent = s.data_source || 'gateio';
+    } else {
+      emaRows.forEach(row => {
+        const valEl = row.querySelector('.tf-ema-value');
+        if (valEl) { valEl.textContent = '计算中...'; valEl.classList.add('loading-dots'); }
+      });
+      dotEl.style.background = '#64748b';
+      dotEl.style.boxShadow = 'none';
+      priceEl.textContent = '--';
+      sourceEl.textContent = '--';
+    }
+  }
+
+  // 价格区间列表
+  renderPriceRanges(d.price_ranges || []);
+}
+
+function renderPriceRanges(list) {
+  const c = document.getElementById('range-list');
+  if (!list || list.length === 0) {
+    c.innerHTML = '<div class="range-empty">暂无价格区间，点击右上角「+ 添加区间」</div>';
+    return;
+  }
+  let html = '';
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
+    const enabledCls = r.enabled ? 'range-item' : 'range-item range-disabled';
+    html += '<div class="' + enabledCls + '">' +
+            '<div class="range-info">' +
+              '<div class="range-name">' + (r.name || ('区间 ' + (i + 1))) + '</div>' +
+              '<div class="range-values">价格 $' + formatNumber(r.low, 2) + ' ~ $' + formatNumber(r.high, 2) + '</div>' +
+              '<div class="range-band">缓冲带: $' + formatNumber(parseFloat(r.low) - 10, 2) + ' ~ $' + formatNumber(parseFloat(r.high) + 10, 2) + '</div>' +
+            '</div>' +
+            '<div class="range-actions">' +
+              '<button class="btn-toggle" onclick="toggleRange(' + i + ')">' + (r.enabled ? '已启用' : '已禁用') + '</button>' +
+              '<button class="btn-delete" onclick="deleteRange(' + i + ')">删除</button>' +
+            '</div></div>';
+  }
+  c.innerHTML = html;
+}
+
+// ====== 价格区间操作 ======
+function showAddRange() { document.getElementById('modal-range').style.display = 'flex'; }
+function hideAddRange() { document.getElementById('modal-range').style.display = 'none'; }
+function submitAddRange() {
+  const low = parseFloat(document.getElementById('range-low').value);
+  const high = parseFloat(document.getElementById('range-high').value);
+  const name = document.getElementById('range-name').value.trim();
+  const enabled = document.getElementById('range-enabled').checked;
+  if (!low || !high || low >= high) { alert('请填写正确的价格区间（下限 < 上限）'); return; }
+  fetch('/api/save_price_range', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ low, high, name, enabled })
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      hideAddRange();
+      renderPriceRanges(d.price_ranges || []);
+      document.getElementById('range-low').value = '';
+      document.getElementById('range-high').value = '';
+      document.getElementById('range-name').value = '';
+    } else alert('保存失败: ' + (d.error || '未知错误'));
+  }).catch(e => alert('请求失败: ' + e));
+}
+function toggleRange(idx) {
+  fetch('/api/toggle_price_range', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index: idx })
+  }).then(r => r.json()).then(d => {
+    if (d.success) renderPriceRanges(d.price_ranges || []);
+    else alert('操作失败: ' + (d.error || '未知错误'));
+  }).catch(e => alert('请求失败: ' + e));
+}
+function deleteRange(idx) {
+  if (!confirm('确认删除该价格区间？')) return;
+  fetch('/api/delete_price_range', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index: idx })
+  }).then(r => r.json()).then(d => {
+    if (d.success) renderPriceRanges(d.price_ranges || []);
+    else alert('删除失败: ' + (d.error || '未知错误'));
+  }).catch(e => alert('请求失败: ' + e));
+}
+
+// ====== 倒计时 & 自动刷新 ======
+function startTick() {
+  if (_tickTimer) clearInterval(_tickTimer);
+  _tickTimer = setInterval(() => {
+    _countdown -= 1;
+    if (_countdown <= 0) {
+      loadState();  // 自动刷新
+    } else {
+      updateCountdown();
+    }
+  }, 1000);
+}
+
+// 启动
+document.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  startTick();
+});
+</script>
+</body>
+</html>
