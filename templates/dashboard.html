@@ -42,65 +42,44 @@
     <div class="card">
       <div class="section-title">各周期状态</div>
       <div class="tf-grid">
-        <div class="tf-card" id="tf-5m">
+        <div class="tf-card tf-mini active" data-tf="5m" onclick="selectTf('5m')">
           <div class="tf-label">5分钟</div>
-          <div class="tf-ema">
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-          </div>
-          <div class="tf-price-row">
-            <span class="tf-signal-dot" style="background:#64748b;"></span>
-            <span class="tf-price-text">--</span>
-          </div>
-          <div class="tf-source">--</div>
         </div>
-        <div class="tf-card" id="tf-15m">
+        <div class="tf-card tf-mini" data-tf="15m" onclick="selectTf('15m')">
           <div class="tf-label">15分钟</div>
-          <div class="tf-ema">
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-          </div>
-          <div class="tf-price-row">
-            <span class="tf-signal-dot" style="background:#64748b;"></span>
-            <span class="tf-price-text">--</span>
-          </div>
-          <div class="tf-source">--</div>
         </div>
-        <div class="tf-card" id="tf-30m">
+        <div class="tf-card tf-mini" data-tf="30m" onclick="selectTf('30m')">
           <div class="tf-label">30分钟</div>
-          <div class="tf-ema">
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-          </div>
-          <div class="tf-price-row">
-            <span class="tf-signal-dot" style="background:#64748b;"></span>
-            <span class="tf-price-text">--</span>
-          </div>
-          <div class="tf-source">--</div>
         </div>
-        <div class="tf-card" id="tf-1h">
+        <div class="tf-card tf-mini" data-tf="1h" onclick="selectTf('1h')">
           <div class="tf-label">1小时</div>
-          <div class="tf-ema">
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-          </div>
-          <div class="tf-price-row">
-            <span class="tf-signal-dot" style="background:#64748b;"></span>
-            <span class="tf-price-text">--</span>
-          </div>
-          <div class="tf-source">--</div>
         </div>
-        <div class="tf-card" id="tf-4h">
+        <div class="tf-card tf-mini" data-tf="4h" onclick="selectTf('4h')">
           <div class="tf-label">4小时</div>
-          <div class="tf-ema">
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 180</span><span class="tf-ema-value loading-dots">计算中...</span></div>
-            <div class="tf-ema-row"><span class="tf-ema-label">EMA 250</span><span class="tf-ema-value loading-dots">计算中...</span></div>
+        </div>
+      </div>
+
+      <!-- EMA 详情区（显示选中周期的 EMA/价格/距离中心） -->
+      <div class="ema-detail" id="ema-detail">
+        <div class="ema-detail-title" id="ema-detail-title">5分钟 · EMA 区间</div>
+        <div class="ema-detail-body">
+          <div class="ema-detail-row">
+            <span class="ema-detail-label" id="ema-short-label">EMA 180</span>
+            <span class="ema-detail-value" id="ema-short-value">--</span>
           </div>
-          <div class="tf-price-row">
-            <span class="tf-signal-dot" style="background:#64748b;"></span>
-            <span class="tf-price-text">--</span>
+          <div class="ema-detail-row">
+            <span class="ema-detail-label" id="ema-long-label">EMA 250</span>
+            <span class="ema-detail-value" id="ema-long-value">--</span>
           </div>
-          <div class="tf-source">--</div>
+          <div class="ema-detail-divider"></div>
+          <div class="ema-detail-row">
+            <span class="ema-detail-label">离区间中心</span>
+            <span class="ema-detail-value" id="ema-distance">--</span>
+          </div>
+          <div class="ema-detail-row">
+            <span class="ema-detail-label">数据源</span>
+            <span class="ema-detail-value" id="ema-source">--</span>
+          </div>
         </div>
       </div>
     </div>
@@ -154,6 +133,9 @@
 let _countdown = 30;
 let _prevPrice = null;
 let _tickTimer = null;
+let _selectedTf = '5m';
+let _lastState = null;
+let _tfNameMap = { '5m': '5分钟', '15m': '15分钟', '30m': '30分钟', '1h': '1小时', '4h': '4小时' };
 
 function formatNumber(n, d) {
   if (n == null || isNaN(n)) return '--';
@@ -163,6 +145,59 @@ function formatNumber(n, d) {
 function updateCountdown() {
   const el = document.getElementById('refresh-countdown');
   if (el) el.textContent = _countdown;
+}
+
+// ====== 点击切换周期 ======
+function selectTf(tf) {
+  _selectedTf = tf;
+  // 更新 active 高亮
+  document.querySelectorAll('.tf-mini').forEach(el => {
+    if (el.dataset.tf === tf) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  // 立刻用已有数据刷新 EMA 详情区
+  if (_lastState) renderEmaDetail(_lastState);
+}
+
+// ====== 渲染 EMA 详情区 ======
+function renderEmaDetail(d) {
+  const states = d.states || {};
+  const cfg = d.config || {};
+  const esVal = (cfg.ema_alert && cfg.ema_alert.ema_short) || 180;
+  const elVal = (cfg.ema_alert && cfg.ema_alert.ema_long) || 250;
+
+  const titleEl = document.getElementById('ema-detail-title');
+  if (titleEl) titleEl.textContent = (_tfNameMap[_selectedTf] || _selectedTf) + ' · EMA 区间';
+
+  const s = states[_selectedTf];
+  const shortEl = document.getElementById('ema-short-value');
+  const longEl = document.getElementById('ema-long-value');
+  const distEl = document.getElementById('ema-distance');
+  const sourceEl = document.getElementById('ema-source');
+  const shortLabel = document.getElementById('ema-short-label');
+  const longLabel = document.getElementById('ema-long-label');
+
+  if (shortLabel) shortLabel.textContent = 'EMA ' + esVal;
+  if (longLabel) longLabel.textContent = 'EMA ' + elVal;
+
+  if (s) {
+    if (shortEl) shortEl.textContent = '$' + formatNumber(s.ema_short, 2);
+    if (longEl) longEl.textContent = '$' + formatNumber(s.ema_long, 2);
+    // 离 EMA 区间中心距离 = 价格 - (EMA180 + EMA250)/2
+    const center = (Number(s.ema_short) + Number(s.ema_long)) / 2;
+    const dist = Number(s.price) - center;
+    if (distEl) {
+      const sign = dist >= 0 ? '+' : '';
+      distEl.textContent = sign + '$' + formatNumber(dist, 2) + '  （中心 $' + formatNumber(center, 2) + '）';
+      distEl.style.color = dist >= 0 ? '#22c55e' : '#f43f5e';
+    }
+    if (sourceEl) sourceEl.textContent = s.data_source || 'gateio';
+  } else {
+    if (shortEl) shortEl.textContent = '--';
+    if (longEl) longEl.textContent = '--';
+    if (distEl) { distEl.textContent = '--'; distEl.style.color = '#fff'; }
+    if (sourceEl) sourceEl.textContent = '--';
+  }
 }
 
 // ====== 核心：请求状态 ======
@@ -270,54 +305,11 @@ function renderDashboard(d) {
     }
   }
 
-  // 周期卡片
-  for (const tfKey of ['5m', '15m', '30m', '1h', '4h']) {
-    const tfCard = document.getElementById('tf-' + tfKey);
-    if (!tfCard) continue;
-    const s = states[tfKey];
-    const emaRows = tfCard.querySelectorAll('.tf-ema-row');
-    const dotEl = tfCard.querySelector('.tf-signal-dot');
-    const priceEl = tfCard.querySelector('.tf-price-text');
-    const sourceEl = tfCard.querySelector('.tf-source');
+  // 缓存最新数据（供点击切换周期时直接复用）
+  _lastState = d;
 
-    if (s) {
-      // 更新 EMA 标签（根据配置动态变化）
-      let esVal = 180, elVal = 250;
-      if (d.config && d.config.ema_alert) {
-        esVal = d.config.ema_alert.ema_short || 180;
-        elVal = d.config.ema_alert.ema_long || 250;
-      }
-
-      const labels = ['EMA ' + esVal, 'EMA ' + elVal];
-      const vals = [s.ema_short, s.ema_long];
-      emaRows.forEach((row, idx) => {
-        const labelEl = row.querySelector('.tf-ema-label');
-        const valEl = row.querySelector('.tf-ema-value');
-        if (labelEl) labelEl.textContent = labels[idx];
-        if (valEl) valEl.textContent = '$' + formatNumber(vals[idx], 2);
-      });
-
-      // 信号点颜色（价格在 EMA 区间上下方）
-      const signal = s.signal || 'between';
-      let dotColor = '#facc15';      // yellow for between
-      if (signal === 'long') dotColor = '#22c55e';   // green - price above both
-      else if (signal === 'short') dotColor = '#ef4444';  // red - price below both
-      dotEl.style.background = dotColor;
-      dotEl.style.boxShadow = '0 0 10px ' + dotColor;
-
-      priceEl.textContent = '$' + formatNumber(s.price, 2);
-      sourceEl.textContent = s.data_source || 'gateio';
-    } else {
-      emaRows.forEach(row => {
-        const valEl = row.querySelector('.tf-ema-value');
-        if (valEl) { valEl.textContent = '计算中...'; valEl.classList.add('loading-dots'); }
-      });
-      dotEl.style.background = '#64748b';
-      dotEl.style.boxShadow = 'none';
-      priceEl.textContent = '--';
-      sourceEl.textContent = '--';
-    }
-  }
+  // EMA 详情区：显示选中周期的 EMA/价格/离中心距离
+  renderEmaDetail(d);
 
   // 价格区间列表
   renderPriceRanges(d.price_ranges || []);
